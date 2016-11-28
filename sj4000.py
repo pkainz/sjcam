@@ -17,6 +17,7 @@ from xml.etree import ElementTree
 from bs4 import BeautifulSoup
 import subprocess
 import math
+import platform
 
 # todo:
 # command 3027 gets random number? - e.g. returns <Value>89770999</Value>
@@ -168,7 +169,7 @@ class camera:
 
 	def ping(self):
 		ret= subprocess.Popen(["ping", "-c1", "-W 1", self.ip],stdout= subprocess.PIPE).communicate()[0]
-		if ret.find(' 0%') >= 0:
+		if ret.find(' 0%') >= 0 or (platform.system() == 'Darwin' and ret.find(' 0.0%') >= 0):
 			return 'Host is UP'
 		return 'Host is DOWN'
 
