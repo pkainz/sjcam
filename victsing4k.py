@@ -1,10 +1,8 @@
 #! /usr/bin/env python
 
-#  sj4000.py - SJCAM SJ4000 Camara support functions
+#  victsing4k.py - VicTsing 4k WiFi Camera support functions
 # 
-#  Adam Laurie <adam@algroup.co.uk>
-# 
-#  This code is copyright (c) Adam Laurie 2015, All rights reserved.
+#  This code is based on the code of Adam Laurie 2015, All rights reserved.
 #
 # note camera firmware seems to be very buggy!
 # if you send an invalid command parameter, you will likely crash the camera
@@ -21,12 +19,12 @@ import platform
 
 
 # todo:
-# command 3027 gets random number? - e.g. returns <Value>89770999</Value>
 # 3002 lists what appears to be a bunch of other commands - need to explore!
-# http://192.168.1.254/?custom=1&cmd=1003 - returns number -e.g. 4694 - what is it?
 # find a way to read current wifi name and password
 # what does camera mode 2 do?
+# camera modes 3 and 4 not working
 # what is data from cmd 3019?
+
 
 class camera:
     DEBUG = False
@@ -38,43 +36,67 @@ class camera:
     MODE_TMOVIE = '3'
     START = '1'
     STOP = '0'
+    ERROR_STATUS = '-256'
     # config commands with configurable parameters
     CONFIG = {
-        '1002': ['Photo_Image_Size', '12M_4032x3024', '10M_3648x2736', '8M_3264x2448', '5M_2592x1944', '3M_2048x1536',
-                 '2MHD_1920x1080', 'VGA_640x480', '1.3M_1280x960'],
-        '1006': ['Sharpness', 'Strong', 'Normal', 'Soft'],
+        '1002': ['Photo_Image_Size', '20M_5120x3840', '16M_4608x3456', '12M_4032x3024', '10M_3648x2736', '8M_3264x2448',
+                 '5M_2592x1944', '3M_2048x1536', 'VGA_640x480', '1.2M_1280x960', '2M_1920x1080'],
+        '1006': ['Sharpness', 'High', 'Normal', 'Medium'],
         '1007': ['White_Balance', 'Auto', 'Daylight', 'Cloudy', 'Tungsten', 'Fluorescent'],
-        '1008': ['Colour', 'Colour', 'B/W', 'Sepia'],
+        #'1008': ['Color', 'Color', 'B/W', 'Sepia'],  # not existent in victsing
         '1009': ['ISO', 'Auto', '100', '200', '400'],
-        '1011': ['Anti_Shaking', 'Off', 'On'],
-        '2002': ['Movie_Resolution', '1080FHD_1920x1080', '720P_1280x720_60fps', '720P_1280x720_30fps', 'WVGA_848x480',
-                 'VGA_640x480'],
-        '2003': ['Cyclic_Record', 'Off', '3_Minutes', '5_Minutes', '10_Minutes'],
+        #'1011': ['Anti_Shaking', 'Off', 'On'],  # not existent at 1011 in victsing
+        '2002': ['Movie_Resolution', 'UHD_24fps', 'QHD_30fps', '3MHD_30fps', 'FHD_96fps', 'FHD_60fps', 'FHD_30fps',
+                 'HD_120fps', 'HD_60fps', 'HD_30fps', 'WVGA_30fps', 'VGA_240fps', 'VGA_30fps', 'QVGA_30fps'],
+        '2003': ['Cyclic_Record', 'Off', '3min', '5min', '10min'],
         '2004': ['HDR/WDR', 'Off', 'On'],
         '2005': ['Exposure', '+2.0', '+5/3', '+4/3', '+1.0', '+2/3', '+1/3', '+0.0', '-1/3', '-2/3', '-1.0', '-4/3',
                  '-5/3', '-2.0'],
         '2006': ['Motion_Detection', 'Off', 'On'],
         '2007': ['Audio', 'Off', 'On'],
         '2008': ['Date_Stamping', 'Off', 'On'],
-        '2019': ['Videolapse', 'Off', '1_Second', '2_Seconds', '5_Seconds', '10_Seconds', '30_Seconds', '1_Minute'],
-        '3007': ['Auto_Power_Off', 'Off', '3_Minutes', '5_Minutes', '10_Minutes'],
-        '3008': ['Language', 'English', 'French', 'Spanish', 'Polish', 'German', 'Italian', 'Unknown_1', 'Unknown_2',
-                 'Russian', 'Unknown_3', 'Unknown_4', 'Unknown_5', 'Portuguese'],
+        #'2011': ['??UNKNOWN??'],  # returns status 0
+        #   http://192.168.1.254/?custom=1&cmd=2011 (without 'par=' results in camera crash)
+        #'2012': ['??UNKNOWN??'],  #
+        #   http://192.168.1.254/?custom=1&cmd=2012 (without 'par=' results in camera crash)
+        #'2013': ['??UNKNOWN??'],  #
+        #   http://192.168.1.254/?custom=1&cmd=2013&par=* (always results in camera crash)
+        #'2014': ['??UNKNOWN??'],  #
+        #   http://192.168.1.254/?custom=1&cmd=2014&par=* (always results in camera crash)
+        #'2016': ['??UNKNOWN??'],  # returns status 0, value 0
+        #'2015': ['??UNKNOWN??'],  #
+        #   http://192.168.1.254/?custom=1&cmd=2015 (without 'par=' results in camera crash)
+        #'2017': ['??UNKNOWN??'],  #
+        #   http://192.168.1.254/?custom=1&cmd=2017 (without 'par=' results in camera crash)
+        #'2019': ['Videolapse', 'Off', '100ms', '200ms', '500ms', '1s', '2s', '5s'], # not existent on victsing at this index
+        '3007': ['Auto_Power_Off', 'Off', '1min', '3min', '5min', '10min'],
+        '3008': ['Language', 'English', 'French', 'German', 'Spanish', 'Italian', 'Portuguese',
+                 'Russian', 'Unknown_1', 'Unknown_2', 'Unknown_3', 'Polish', 'Unknown_4'],
+        #'3009': ['??UNKNOWN??'],
         '3010': ['Format', 'Cancel', 'OK'],
         '3011': ['Default_Setting', 'Cancel', 'OK'],
         '3025': ['Frequency', '50Hz', '60Hz'],
         '3026': ['Rotate', 'Off', 'On'],
+        #'3033': ['??UNKNOWN??'],
     }
+
+    # Params that cannot be set via WiFi
+    # Gyroscope
+    # Diving Mode
+
     # commands with no or free-form string parameters
     COMMANDS = {
         'CONFIG': '3014',
         'DATE': '3005',
         'DISK_SPACE': '3017',
         'MODE_PHOTO_MOVIE': '3001',
+        'MOVIE_REMAINING': '2009',
+        'PHOTOS_REMAINING': '1003',
         'SNAP': '1001',
         'START_STOP': '2001',
         'STATUS_MODE': '3016',
         'TIME': '3006',
+        'VERSION': '3012',
         'WIFI_NAME': '3003',
         'WIFI_PW': '3004',
     }
@@ -84,6 +106,35 @@ class camera:
             if self.CONFIG[conf][0].upper() == config.upper():
                 return conf
         return None
+
+    def get_remaining_photos(self):
+        ret, info = self.send_command('PHOTOS_REMAINING')
+        if not ret:
+            return ret, info
+        remaining = self.get_element(info, 'Value')
+        if remaining:
+            return True, int(remaining)
+        return False, 0
+
+    def get_version(self):
+        ret, info = self.send_command('VERSION')
+        if not ret:
+            return ret, info
+        ver = self.get_element(info, 'String')
+        if ver:
+            return True, str(ver)
+        return False, 0
+
+    def get_remaining_movie(self):
+        ret, info = self.send_command('MOVIE_REMAINING')
+        if not ret:
+            return ret, info
+        remaining = self.get_element(info, 'Value')
+        if remaining:
+            m, s = divmod(int(remaining), 60)
+            h, m = divmod(m, 60)
+            return True, h, m, s
+        return False, 0, 0, 0
 
     def get_disk_space(self):
         ret, info = self.send_command('DISK_SPACE')
@@ -115,7 +166,7 @@ class camera:
         for chunk in r.iter_content(chunk_size=2048 * 1024):
             if chunk:  # filter out keep-alive new chunks
                 gotlen += len(chunk)
-                print '    %s of %s    \r' % (self.human_readable(gotlen), flen),
+                print '    %s of %s    \r' % (self.human_readable(gotlen), flen)
                 sys.stdout.flush()
                 outfile.write(chunk)
         outfile.close()
@@ -135,6 +186,7 @@ class camera:
         return None, None, None
 
     def get_mode(self):
+        # TODO this mode always returns 0, not sure if this reflects the status of the camera!
         ret, info = self.send_command('STATUS_MODE')
         if ret:
             return True, self.get_element(info, 'Status')
@@ -181,7 +233,7 @@ class camera:
 
     def print_config_help(self, parameter):
         if parameter:
-            print '    %s:' % self.CONFIG[self.get_config_by_name(parameter)][0],
+            print '    %s:' % self.CONFIG[self.get_config_by_name(parameter)][0]
             print ', '.join([i for i in self.CONFIG[self.get_config_by_name(parameter)][1:]])
         else:
             for item in self.CONFIG:
@@ -192,7 +244,7 @@ class camera:
         ret, info = self.send_command('CONFIG')
         if ret:
             tree = ElementTree.fromstring(info.text)
-            # sj4000 XML is not properly nested, so we need to kludge it
+            # XML is not properly nested, so we need to kludge it
             print
             for branch in tree:
                 if branch.tag == 'Status':
@@ -217,12 +269,12 @@ class camera:
                 print '    %s:' % thing
                 print
             try:
-                resp = requests.get("http://" + self.ip + "/DCIM/%s" % thing, timeout=5)
+                resp = requests.get("http://" + self.ip + "/NOVATEK/%s" % thing, timeout=5)
             except:
                 return False, 'Timeout!'
             if resp.status_code != 200:
                 return False, resp
-            soup = BeautifulSoup(resp.text)
+            soup = BeautifulSoup(resp.text, 'lxml')
             try:
                 table = soup.findChildren('table')[0]
             except:
@@ -314,14 +366,16 @@ class camera:
             switch = self.MODE_TMOVIE
         else:
             return False, 'Unrecognised MODE'
+        return True, switch
         # wait for mode switch
-        while 42:
-            stat, mode = self.get_mode()
-            if stat:
-                if mode == switch:
-                    return True, None
-            else:
-                return False, mode
+        # while 42:
+        #     # TODO this hangs in a loop, because the camera does not return the mode properly
+        #     stat, mode = self.get_mode()
+        #     if stat:
+        #         if mode == switch:
+        #             return True, None
+        #     else:
+        #         return False, mode
 
     def set_time(self, time):
         return self.send_command('TIME', str_param=time)
@@ -338,7 +392,7 @@ class camera:
         if not ret:
             return ret, info
         try:
-            resp = requests.get("http://" + self.ip + "/DCIM/PHOTO", timeout=5)
+            resp = requests.get("http://" + self.ip + "/NOVATEK/PHOTO", timeout=5)
         except:
             return False, 'Timeout!'
         if resp.status_code != 200:
@@ -356,4 +410,6 @@ class camera:
     def stream(self):
         if not self.DEVNULL:
             self.DEVNULL = open(os.devnull, 'wb')
-        subprocess.Popen(['vlc', 'rtsp://' + self.ip + '/sjcam.mov'], stdout=self.DEVNULL, stderr=subprocess.STDOUT)
+        subprocess.Popen(['vlc', 'rtsp://' + self.ip + ':554/stream0/svc0/track1'],
+                         stdout=self.DEVNULL,
+                         stderr=subprocess.STDOUT)
