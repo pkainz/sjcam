@@ -1,6 +1,6 @@
-# sjcam
+# cam
 
-A python CLI tool for controlling SJCAM WiFi Sports Cameras
+A python CLI tool for controlling SJCAM/VicTsing WiFi Sports Cameras
 
 # installation
 
@@ -14,17 +14,17 @@ For other ditros, visit the home pages for more info:
 
   http://opencv.org/
 
-To install sjcam:
+To install `cam`: 
 
-  sudo python ./setup.py install
+  sudo python ./setup.py install
 
 # usage
 
 Running the script with no arguments will show a help screen:
 
-  sjcam
+  cam
 
-  Usage: /usr/local/bin/sjcam &lt;COMMAND&gt; [ARG(s)] [&lt;COMMAND&gt; [ARG(s)] ...]
+  Usage: /usr/local/bin/cam &lt;COMMAND&gt; [ARG(s)] [&lt;COMMAND&gt; [ARG(s)] ...]
 
     Commands:
 
@@ -55,7 +55,7 @@ Most commands are self explanatory.
 
 # viewing camera config settings
 
-  sjcam config
+  cam config
 
     Camera config:
 
@@ -91,7 +91,7 @@ Parameter names and values are translated to a keyword format that is easy to cu
 
 Changeable parameters can be set using the SET command, followed by parameter name and value. To get a full list of parameters and values, use:
 
-  sjcam set ? ?
+  cam set ? ?
 
     SET config help:
 
@@ -118,7 +118,7 @@ Changeable parameters can be set using the SET command, followed by parameter na
 
 To get the list of values for a specific parameter, use e.g.:
 
-  sjcam set Photo_Image_Size ?
+  cam set Photo_Image_Size ?
 
     SET config help:
 
@@ -126,7 +126,7 @@ To get the list of values for a specific parameter, use e.g.:
 
 To change a parameter, specify the parameter name and new value:
 
-  sjcam set Photo_Image_Size 2MHD_1920x1080
+  cam set Photo_Image_Size 2MHD_1920x1080
 
     Setting Photo_Image_Size to 2MHD_1920x1080
       OK
@@ -139,7 +139,7 @@ Format will wipe the SD card and Default_Setting will set all parameters back to
 
 There is no 'are you sure?' prompt, so running the command:
 
-  sjcam set format ?
+  cam set format ?
 
     SET config help:
 
@@ -147,14 +147,14 @@ There is no 'are you sure?' prompt, so running the command:
 
 shows the options, and:
 
-  sjcam set format ok
+  cam set format ok
 
     Setting format to ok
       OK
 
 will immediately wipe your SD card. Use with caution!
 
-  sjcam dir
+  cam dir
 
     Camera directory:
 
@@ -183,6 +183,7 @@ Commands can be tested by sending them directly to the camera using a browser. F
 
   http://192.168.1.254/?custom=1&cmd=3003&str=%22MyShinySJ4000%22
 
+**NB: the `cmd` string may vary for your model!**
 If you find any new or useful commands, please email me details, or send me a pull request. I have commented some as yet unexplored options in sj4000.py
 
 At some point, it would be nice to have a GUI.
